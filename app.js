@@ -94,7 +94,7 @@ router.post("/api/login", async (ctx, next) => {
       updatetime: userInfo.updatetime,
     };
     // 获取令牌信息
-    const token = jwt.sign(userToken, secret, { expiresIn: "1h" }); //token签名 有效期为1小时
+    const token = jwt.sign(userToken, secret, { expiresIn: "1h" }); //token签名 有效期为1小时// 存储到redis;
     const client = redis.createClient(redisConf.port, redisConf.host);
     let pwd = Decrypt(
       redisConf.password,
@@ -104,8 +104,7 @@ router.post("/api/login", async (ctx, next) => {
     console.log("redis密码", pwd);
     client.auth(pwd);
     client.on("connect", () => {
-      let _key = `token_${userInfo.id}_${userInfo.username}`;
-      // 存储到redis
+      let _key = `token_${userInfo.id}_${userInfo.username}`;   
       client.set(_key, token, (err, data) => {
         console.log(_key);
         console.log(token);
@@ -113,8 +112,7 @@ router.post("/api/login", async (ctx, next) => {
         console.log(data);
       });
       client.expire(_key, 3600); //1小时自动过期
-    });
-
+    });    
     ctx.body = {
       message: "获取token成功",
       code: 1,
