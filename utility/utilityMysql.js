@@ -51,7 +51,9 @@ var UPDATE_DATA = (tableName, id, colum, value) =>
 /************************查询操作相关************************
  * 数据查询相关 DQL
  *************************************************************/
-//(1)
+//(1) 查询表中指定条件的数据
+var QUERY_DAtAS_WHERE = (tableName, where) =>
+  `SELECT * FROM ${tableName} WHERE 1=1 AND ${where}`;
 /************************约束/外键/字符集相关************************
  * 约束/外键/字符集相关
  *************************************************************/
@@ -85,4 +87,5 @@ module.exports = {
   DELETE_DATA_BY_ID,
   DELETE_DATAS,
   UPDATE_DATA,
+  QUERY_DAtAS_WHERE
 };
