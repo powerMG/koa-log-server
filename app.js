@@ -27,6 +27,9 @@ const { QUERY_DAtAS_WHERE } = require("./utility/utilityMysql"); //部分引入s
 const index = require("./routes/index");
 const users = require("./routes/users");
 const info = require("./routes/interface/info");
+/* Import Databse Conf File */
+const baseConf_mysql = require("./routes/dbConfInterface/I_MysqlConf");
+/* Import Databse Conf File END*/
 
 // error handler
 onerror(app);
@@ -104,7 +107,7 @@ router.post("/api/login", async (ctx, next) => {
     console.log("redis密码", pwd);
     client.auth(pwd);
     client.on("connect", () => {
-      let _key = `token_${userInfo.id}_${userInfo.username}`;   
+      let _key = `token_${userInfo.id}_${userInfo.username}`;
       client.set(_key, token, (err, data) => {
         console.log(_key);
         console.log(token);
@@ -112,7 +115,7 @@ router.post("/api/login", async (ctx, next) => {
         console.log(data);
       });
       client.expire(_key, 3600); //1小时自动过期
-    });    
+    });
     ctx.body = {
       message: "获取token成功",
       code: 1,
@@ -142,6 +145,8 @@ router.post("/api/login", async (ctx, next) => {
 //   }
 // });
 app.use(router.routes()).use(router.allowedMethods());
+// 基础配置（mysql数据库基本操作导入）
+app.use(baseConf_mysql.routes(), baseConf_mysql.allowedMethods());
 // routes
 app.use(index.routes(), index.allowedMethods());
 app.use(users.routes(), users.allowedMethods());

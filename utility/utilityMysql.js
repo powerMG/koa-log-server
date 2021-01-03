@@ -18,8 +18,10 @@ const USE_DB = (dbName) => `USE ${dbName};`;
 //(1) 查询所有数据表
 const SHOW_ALL_TABLE = `SHOW TABLES`;
 //(2) 添加数据表
-const CREATE_TABLE = (tableName) =>
-  `CREATE TABLE IF NOT EXISTS ${tableName} (id int NOT NULL primary key AUTO_INCREMENT comment 'primary key',created_time TIMESTAMP COMMENT 'created time',updated_time TIMESTAMP COMMENT 'updated time')`;
+const CREATE_TABLE = (tableName, tableColumsData) =>
+  `CREATE TABLE IF NOT EXISTS ${tableName} (id int NOT NULL primary key AUTO_INCREMENT comment 'primary key'${
+    tableColumsData ? "," + tableColumsData : ""
+  },created_time TIMESTAMP COMMENT 'created time',updated_time TIMESTAMP COMMENT 'updated time')`;
 //(3) 删除表
 const DROP_TABLE = (tableName) => `DROP TABLE IF EXISTS ${tableName};`;
 //(4) 添加字段
@@ -87,5 +89,5 @@ module.exports = {
   DELETE_DATA_BY_ID,
   DELETE_DATAS,
   UPDATE_DATA,
-  QUERY_DAtAS_WHERE
+  QUERY_DAtAS_WHERE,
 };
