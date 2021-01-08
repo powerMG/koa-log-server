@@ -15,7 +15,7 @@ const {
 const mysqlRouter = new Router({
   prefix: "initMysql/",
 });
-responseBody = {
+let responseBody = {
   code: 1,
   message: "请求成功",
   data: [],
@@ -23,7 +23,7 @@ responseBody = {
 // 创建数据
 mysqlRouter.post("createDataBase", async (ctx) => {
   let { code, message, data } = responseBody;
-  let message = "创建成功";
+  message = "创建成功";
   if (!ctx.body.dbName) {
     code = 0;
     message = "请输入创建的数据库名字";
@@ -182,4 +182,4 @@ mysqlRouter.post("dropTableColum", async (ctx) => {
     data,
   };
 });
-export default mysqlRouter;
+module.exports = mysqlRouter;

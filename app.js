@@ -11,7 +11,7 @@ const router = new Router();
 const jwt = require("jsonwebtoken");
 const jwtKoa = require("koa-jwt");
 const util = require("util");
-const verify = util.promisify(jwt.verify); // 解密
+// const verify = util.promisify(jwt.verify); // 解密
 const secret = "jwt demo";
 /* JWT Import END */
 /* Redis Import */
@@ -119,12 +119,13 @@ router.post("/api/login", async (ctx, next) => {
     ctx.body = {
       message: "获取token成功",
       code: 1,
-      token,
+      data: token,
     };
   } else {
     ctx.body = {
       message: "登录失败，用户名不存在",
       code: -1,
+      data: null,
     };
   }
 });
