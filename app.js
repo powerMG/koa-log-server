@@ -10,8 +10,6 @@ const router = new Router();
 /* JWT Import*/
 const jwt = require("jsonwebtoken");
 const jwtKoa = require("koa-jwt");
-const util = require("util");
-// const verify = util.promisify(jwt.verify); // 解密
 const secret = "jwt demo";
 /* JWT Import END */
 /* Redis Import */
@@ -23,14 +21,16 @@ const { Decrypt } = require("./utility/cryptoJs");
 
 const { queryFirst } = require("./db/mysql/DBHelper"); //引入异步查询方法
 const { QUERY_DAtAS_WHERE } = require("./utility/utilityMysql"); //部分引入sql库
-
+/* Import Interface File */
 const index = require("./routes/index");
 const users = require("./routes/users");
 const info = require("./routes/interface/info");
+const menu = require("./routes/interface/menu");
+/* Import Interface File End */
 /* Import Databse Conf File */
 const baseConf_mysql = require("./routes/dbConfInterface/I_MysqlConf");
 /* Import Databse Conf File END*/
-
+let redisClient = null;
 // error handler
 onerror(app);
 // middlewares
@@ -48,27 +48,11 @@ app.use(
     extension: "pug",
   })
 );
-
 app.use(
   jwtKoa({ secret }).unless({
-    path: [/\/api\/login/],
+    path: [/\/api\/login/, /\/api\/test/],
   })
 );
-
-// app.keys = ["redisKey", "redisKeysKeys"];
-// app.use(
-//   session({
-//     store: redisStore({
-//       host: redisConf.host,
-//       port: redisConf.port,
-//       password: Decrypt(
-//         redisConf.password,
-//         redisConf.rediskey,
-//         redisConf.redisiv
-//       ),
-//     }),
-//   })
-// );
 // logger
 app.use(async (ctx, next) => {
   const start = new Date();
@@ -76,9 +60,18 @@ app.use(async (ctx, next) => {
   const ms = new Date() - start;
   console.log(`${ctx.method} ${ctx.url} - ${ms}ms`);
 });
+// test
+router.get("/api/test", async (ctx) => {
+  ctx.body = {
+    message: "aaa",
+    code: 1,
+    data: null,
+  };
+});
 /* 登录接口实现 */
 router.post("/api/login", async (ctx, next) => {
   const { username, password } = ctx.request.body;
+  console.log("userInfo", {username,password});
   // 查询数据库用户信息
   let userInfo = await queryFirst(
     QUERY_DAtAS_WHERE(
@@ -86,35 +79,44 @@ router.post("/api/login", async (ctx, next) => {
       `username='${username}' and password='${password}'`
     )
   );
+  console.log("userInfo", userInfo);
   // 获取redis配置项
   let redisInfor = await queryFirst(
     QUERY_DAtAS_WHERE("config", `password='${redisConf.password}'`)
   );
   if (userInfo && userInfo.username) {
     let userToken = {
+      uid: userInfo.id,
       username: userInfo.username,
       createtime: userInfo.createtime,
       updatetime: userInfo.updatetime,
     };
+    // 计算时效到0点的毫秒数(0点后所有token全部失效)
+    let _now = new Date();
+    let _year = _now.getFullYear();
+    let _month = _now.getMonth() + 1;
+    let _date = _now.getDate();
+    console.log("开始计算令牌有效期", _year, _month, _date);
+    let _expiresIn =
+      new Date(`${_year}/${_month}/${_date + 1}`).getTime() - new Date();
+    console.log("计算结束", _expiresIn);
     // 获取令牌信息
-    const token = jwt.sign(userToken, secret, { expiresIn: "1h" }); //token签名 有效期为1小时// 存储到redis;
-    const client = redis.createClient(redisConf.port, redisConf.host);
+    const token = jwt.sign(userToken, secret, {
+      expiresIn: _expiresIn,
+    }); //token签名 有效期到0点
+    // 存储到redis;
+    redisClient = redis.createClient(redisConf.port, redisConf.host);
     let pwd = Decrypt(
       redisConf.password,
       redisInfor.redisKey,
       redisInfor.redisIv
     );
     console.log("redis密码", pwd);
-    client.auth(pwd);
-    client.on("connect", () => {
-      let _key = `token_${userInfo.id}_${userInfo.username}`;
-      client.set(_key, token, (err, data) => {
-        console.log(_key);
-        console.log(token);
-        console.log(err);
-        console.log(data);
-      });
-      client.expire(_key, 3600); //1小时自动过期
+    redisClient.auth(pwd);
+    redisClient.on("connect", () => {
+      let _key = `token_${userInfo.id}_${userInfo.username}_acess`;
+      redisClient.set(_key, token);
+      redisClient.expire(_key, _expiresIn); //1小时自动过期
     });
     ctx.body = {
       message: "获取token成功",
@@ -148,14 +150,34 @@ router.post("/api/login", async (ctx, next) => {
 app.use(router.routes()).use(router.allowedMethods());
 // 基础配置（mysql数据库基本操作导入）
 app.use(baseConf_mysql.routes(), baseConf_mysql.allowedMethods());
-// routes
+/* Instantiation Interface */
+// test
 app.use(index.routes(), index.allowedMethods());
+// user
 app.use(users.routes(), users.allowedMethods());
+// info
 app.use(info.routes(), info.allowedMethods());
+// menu
+app.use(menu.routes(), menu.allowedMethods());
+/* Instantiation Interface End */
 
 // error-handling
 app.on("error", (err, ctx) => {
-  console.error("server error", err, ctx);
+  console.log("请求异常");
+  let errMsg = {
+    code: 500,
+    message: "服务忙，请稍等(-9999)",
+  };
+  if (err.status === 401) {
+    errMsg = {
+      code: 401,
+      message: "无访问权限",
+    };
+  }
+  ctx.res.writeHead(errMsg.code, {
+    "content-Type": "application/json;charset=utf-8",
+  });
+  ctx.res.end(JSON.stringify(errMsg));
 });
 
 module.exports = app;
