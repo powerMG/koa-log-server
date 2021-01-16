@@ -8,7 +8,7 @@ const SHOW_ALL_DB = `SHOW DATABASES`;
 //(3) 删除数据库
 const DELETE_DB = (dbName) => `DROP DATABASE IF EXISTS ${dbName};`;
 //(4) 查询正在使用的数据库
-const SELECT_DATABASE = `SELECT DATABASE()`;
+const SELECT_DATABASE = `SELECT DATABASE() as dbName`;
 //(5) 使用数据库
 const USE_DB = (dbName) => `USE ${dbName};`;
 
